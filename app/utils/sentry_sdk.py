@@ -491,7 +491,7 @@ def report_silent(
     where: str,
     *,
     extra: Mapping[str, Any] | None = None,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """Catch exceptions, report to Sentry, do not re-raise.
 
     Use this in background-task iterations or loop boundaries where an
