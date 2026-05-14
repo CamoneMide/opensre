@@ -836,8 +836,17 @@ class VercelPoller:
                 candidates = await asyncio.to_thread(self.collect_candidates)
                 for candidate in candidates:
                     was_processed = False
-                    with report_silent("vercel_poller.handle_candidate"):
+                    try:
                         was_processed = await handle_candidate(candidate)
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:
+                        logger.exception(
+                            "Vercel poller candidate handling failed for %s",
+                            candidate.dedupe_key,
+                        )
+                        with report_silent("vercel_poller.handle_candidate"):
+                            raise
                     if was_processed:
                         await asyncio.to_thread(
                             self.state_store.mark_processed,
@@ -847,6 +856,7 @@ class VercelPoller:
             except asyncio.CancelledError:
                 raise
             except Exception:
+                logger.exception("Vercel poller iteration failed")
                 with report_silent("vercel_poller.iteration"):
                     raise
 
