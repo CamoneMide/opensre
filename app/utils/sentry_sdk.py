@@ -502,8 +502,4 @@ def report_silent(
     try:
         yield
     except Exception as exc:
-        with suppress(Exception):
-            import sentry_sdk
-
-            sentry_sdk.set_tag("silent_at", where)
         capture_exception(exc, context=where, extra=extra)
