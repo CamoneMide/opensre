@@ -26,6 +26,8 @@ from app.constants import (
     SENTRY_TRACES_SAMPLE_RATE,
 )
 
+logger = logging.getLogger(__name__)
+
 _HOME_PATH_RE: re.Pattern[str] = re.compile(r"/(?:Users|home)/[^/\s]+")
 _SENSITIVE_KEY_SUFFIXES: tuple[str, ...] = ("_token", "_key", "_secret", "_password")
 _SENSITIVE_KEY_SUBSTRINGS: tuple[str, ...] = (
@@ -502,6 +504,7 @@ def report_silent(
     try:
         yield
     except Exception as exc:
+        logger.warning("Silent exception at %s: %s", where, exc)
         with suppress(Exception):
             import sentry_sdk
 

@@ -399,13 +399,9 @@ def _run_parallel(
         tool = tool_map.get(tc.name)
         if tool is None:
             return {"error": f"unknown tool: {tc.name}"}
-        try:
-            injected = tool.extract_params(resolved_integrations)
-            kwargs = {**injected, **tc.input}
-            return tool.run(**kwargs)
-        except Exception as exc:
-            logger.warning("[tool:%s] failed: %s", tc.name, exc)
-            return {"error": str(exc)}
+        injected = tool.extract_params(resolved_integrations)
+        kwargs = {**injected, **tc.input}
+        return tool(**kwargs)
 
     if len(tool_calls) == 1:
         return [_call(tool_calls[0])]

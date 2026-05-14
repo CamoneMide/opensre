@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from types import NoneType
@@ -12,6 +13,8 @@ from app.tools.base import BaseTool, ToolMetadata
 from app.types.evidence import EvidenceSource
 from app.types.retrieval import RetrievalControls
 from app.types.tools import ToolSurface
+
+logger = logging.getLogger(__name__)
 
 REGISTERED_TOOL_ATTR = "__opensre_registered_tool__"
 
@@ -204,6 +207,13 @@ class RegisteredTool:
         try:
             return self.run(**kwargs)
         except Exception as exc:
+            logger.warning("[tool:%s] failed: %s", self.name, exc)
+            from contextlib import suppress
+
+            with suppress(Exception):
+                import sentry_sdk
+
+                sentry_sdk.set_tag("tool", self.name)
             from app.utils.sentry_sdk import capture_exception
 
             capture_exception(exc, context=f"tool.{self.name}")

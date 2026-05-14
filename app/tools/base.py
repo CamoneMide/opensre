@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from abc import ABC
 from typing import Any, ClassVar
 
@@ -10,6 +11,8 @@ from pydantic import Field, field_validator
 from app.strict_config import StrictConfigModel
 from app.types.evidence import EvidenceSource
 from app.types.retrieval import RetrievalControls
+
+logger = logging.getLogger(__name__)
 
 
 class ToolMetadata(StrictConfigModel):
@@ -122,6 +125,13 @@ class BaseTool(ABC):
         try:
             return self.run(**kwargs)  # type: ignore[attr-defined, no-any-return]
         except Exception as exc:
+            logger.warning("[tool:%s] failed: %s", self.name, exc)
+            from contextlib import suppress
+
+            with suppress(Exception):
+                import sentry_sdk
+
+                sentry_sdk.set_tag("tool", self.name)
             from app.utils.sentry_sdk import capture_exception
 
             capture_exception(exc, context=f"tool.{self.name}")
