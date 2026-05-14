@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 
 from app.integrations.verify import resolve_effective_integrations
 from app.services.vercel import VercelClient, VercelConfig, make_vercel_client
+from app.utils.sentry_sdk import report_silent
 
 logger = logging.getLogger(__name__)
 
@@ -834,14 +835,9 @@ class VercelPoller:
             try:
                 candidates = await asyncio.to_thread(self.collect_candidates)
                 for candidate in candidates:
-                    try:
+                    was_processed = False
+                    with report_silent("vercel_poller.handle_candidate"):
                         was_processed = await handle_candidate(candidate)
-                    except Exception:
-                        logger.exception(
-                            "Background RCA for Vercel deployment %s failed",
-                            candidate.dedupe_key,
-                        )
-                        was_processed = False
                     if was_processed:
                         await asyncio.to_thread(
                             self.state_store.mark_processed,
@@ -851,7 +847,8 @@ class VercelPoller:
             except asyncio.CancelledError:
                 raise
             except Exception:
-                logger.exception("Vercel poller iteration failed")
+                with report_silent("vercel_poller.iteration"):
+                    raise
 
             await asyncio.sleep(self.settings.interval_seconds)
 
