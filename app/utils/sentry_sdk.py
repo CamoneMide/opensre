@@ -466,6 +466,7 @@ def capture_exception(
     exc: BaseException,
     *,
     context: str | None = None,
+    tags: Mapping[str, str] | None = None,
     extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Best-effort capture for exceptions swallowed by boundary adapters."""
@@ -474,12 +475,15 @@ def capture_exception(
     with suppress(Exception):
         import sentry_sdk
 
-        if context is None and not extra:
+        if context is None and not tags and not extra:
             sentry_sdk.capture_exception(exc)
             return
         with sentry_sdk.push_scope() as scope:
             if context is not None:
                 scope.set_tag("opensre.context", context)
+            if tags:
+                for key, value in tags.items():
+                    scope.set_tag(key, value)
             if extra:
                 for key, value in extra.items():
                     scope.set_extra(key, value)
